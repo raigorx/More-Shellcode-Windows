@@ -1,0 +1,20 @@
+{
+  "name": "clang-16 gcc-13 dev enviroment",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+		"usernamehw.errorlens",
+		"ms-vscode.cpptools-themes",
+		"ms-vscode.cpptools",
+		"tboox.xmake-vscode",
+		"vadimcn.vscode-lldb"
+	]
+    }
+  }
+}

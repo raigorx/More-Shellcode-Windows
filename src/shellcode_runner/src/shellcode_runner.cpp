@@ -1,0 +1,94 @@
+#include <array>
+#include <cassert>
+#include <cstddef>
+#include <iostream>
+#include <memory>
+
+#include <windows.h>
+
+#include "../../commons/includes/os_tweaks.h"
+
+namespace nm_utils {
+using std::to_array, std::array, std::byte;
+using std::wcout, std::endl, std::unique_ptr;
+
+static_assert(sizeof(byte) == 1, "Expecting 8 bits std::byte");
+
+// concat shellcode + suffix
+consteval auto create_code() {
+  // To avoid exception after calc.exe execution
+  // shellcode works without this
+  constexpr auto suffix =
+      to_array<byte>({byte{0x59}, byte{0x59}, byte{0x59}, byte{0x59},
+                      byte{0x59}, byte{0x59}, byte{0x59}, byte{0xC3}});
+
+  // https://github.com/boku7/x64win-DynamicNoNull-WinExec-PopCalc-Shellcode
+  constexpr auto shellcode = to_array<byte>(
+      {byte{0x48}, byte{0x31}, byte{0xFF}, byte{0x48}, byte{0xF7}, byte{0xE7},
+       byte{0x65}, byte{0x48}, byte{0x8B}, byte{0x58}, byte{0x60}, byte{0x48},
+       byte{0x8B}, byte{0x5B}, byte{0x18}, byte{0x48}, byte{0x8B}, byte{0x5B},
+       byte{0x20}, byte{0x48}, byte{0x8B}, byte{0x1B}, byte{0x48}, byte{0x8B},
+       byte{0x1B}, byte{0x48}, byte{0x8B}, byte{0x5B}, byte{0x20}, byte{0x49},
+       byte{0x89}, byte{0xD8}, byte{0x8B}, byte{0x5B}, byte{0x3C}, byte{0x4C},
+       byte{0x01}, byte{0xC3}, byte{0x48}, byte{0x31}, byte{0xC9}, byte{0x66},
+       byte{0x81}, byte{0xC1}, byte{0xFF}, byte{0x88}, byte{0x48}, byte{0xC1},
+       byte{0xE9}, byte{0x08}, byte{0x8B}, byte{0x14}, byte{0x0B}, byte{0x4C},
+       byte{0x01}, byte{0xC2}, byte{0x4D}, byte{0x31}, byte{0xD2}, byte{0x44},
+       byte{0x8B}, byte{0x52}, byte{0x1C}, byte{0x4D}, byte{0x01}, byte{0xC2},
+       byte{0x4D}, byte{0x31}, byte{0xDB}, byte{0x44}, byte{0x8B}, byte{0x5A},
+       byte{0x20}, byte{0x4D}, byte{0x01}, byte{0xC3}, byte{0x4D}, byte{0x31},
+       byte{0xE4}, byte{0x44}, byte{0x8B}, byte{0x62}, byte{0x24}, byte{0x4D},
+       byte{0x01}, byte{0xC4}, byte{0xEB}, byte{0x32}, byte{0x5B}, byte{0x59},
+       byte{0x48}, byte{0x31}, byte{0xC0}, byte{0x48}, byte{0x89}, byte{0xE2},
+       byte{0x51}, byte{0x48}, byte{0x8B}, byte{0x0C}, byte{0x24}, byte{0x48},
+       byte{0x31}, byte{0xFF}, byte{0x41}, byte{0x8B}, byte{0x3C}, byte{0x83},
+       byte{0x4C}, byte{0x01}, byte{0xC7}, byte{0x48}, byte{0x89}, byte{0xD6},
+       byte{0xF3}, byte{0xA6}, byte{0x74}, byte{0x05}, byte{0x48}, byte{0xFF},
+       byte{0xC0}, byte{0xEB}, byte{0xE6}, byte{0x59}, byte{0x66}, byte{0x41},
+       byte{0x8B}, byte{0x04}, byte{0x44}, byte{0x41}, byte{0x8B}, byte{0x04},
+       byte{0x82}, byte{0x4C}, byte{0x01}, byte{0xC0}, byte{0x53}, byte{0xC3},
+       byte{0x48}, byte{0x31}, byte{0xC9}, byte{0x80}, byte{0xC1}, byte{0x07},
+       byte{0x48}, byte{0xB8}, byte{0x0F}, byte{0xA8}, byte{0x96}, byte{0x91},
+       byte{0xBA}, byte{0x87}, byte{0x9A}, byte{0x9C}, byte{0x48}, byte{0xF7},
+       byte{0xD0}, byte{0x48}, byte{0xC1}, byte{0xE8}, byte{0x08}, byte{0x50},
+       byte{0x51}, byte{0xE8}, byte{0xB0}, byte{0xFF}, byte{0xFF}, byte{0xFF},
+       byte{0x49}, byte{0x89}, byte{0xC6}, byte{0x48}, byte{0x31}, byte{0xC9},
+       byte{0x48}, byte{0xF7}, byte{0xE1}, byte{0x50}, byte{0x48}, byte{0xB8},
+       byte{0x9C}, byte{0x9E}, byte{0x93}, byte{0x9C}, byte{0xD1}, byte{0x9A},
+       byte{0x87}, byte{0x9A}, byte{0x48}, byte{0xF7}, byte{0xD0}, byte{0x50},
+       byte{0x48}, byte{0x89}, byte{0xE1}, byte{0x48}, byte{0xFF}, byte{0xC2},
+       byte{0x48}, byte{0x83}, byte{0xEC}, byte{0x20}, byte{0x41}, byte{0xFF},
+       byte{0xD6}});
+
+  array<byte, shellcode.size() + suffix.size()> code{};
+  auto iterator = copy(shellcode.begin(), shellcode.end(), code.begin());
+  copy(suffix.begin(), suffix.end(), iterator);
+
+  return code;
+}
+
+}  // namespace nm_utils
+
+/*
+you don't need extern "C" if you mangle the name
+(?asm_shellcode@@YAXXZ)
+*/
+void asm_shellcode();
+
+int main() {
+  using std::make_unique;
+
+  auto code = nm_utils::create_code();
+
+  set_full_memory_permission(code.data(), code.size());
+
+  using function_ptr = void (*)();
+
+  //  one line, cast and execution
+  (reinterpret_cast<function_ptr>(
+      code.data()))();  //  NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+
+  asm_shellcode();
+
+  return EXIT_SUCCESS;
+}
