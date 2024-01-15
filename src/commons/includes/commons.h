@@ -24,7 +24,7 @@ void debug_info();
 extern "C" {
 #endif
 
-generic_buffer generete_dynamic_array(size_t size, size_t elem_size);
+generic_buffer generate_dynamic_array(size_t size, size_t elem_size);
 
 uc_buffer get_self_asm_bytes(const unsigned char* const begin_addr,
                              const unsigned char* const end_addr);

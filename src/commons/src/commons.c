@@ -4,7 +4,7 @@
 
 #include "../includes/commons.h"
 
-generic_buffer generete_dynamic_array(size_t size, size_t elem_size) {
+generic_buffer generate_dynamic_array(size_t size, size_t elem_size) {
   void* const buffer = calloc(size, elem_size);
   if (buffer == NULL) {
     printf("Error allocating memory\n");
@@ -19,7 +19,7 @@ uc_buffer get_self_asm_bytes(const unsigned char* const begin_addr,
   const size_t opcodes_raw_size = end_addr - begin_addr;
 
   generic_buffer tmp_buffer =
-      generete_dynamic_array(opcodes_raw_size, sizeof(unsigned char));
+      generate_dynamic_array(opcodes_raw_size, sizeof(unsigned char));
 
   uc_buffer opcodes_raw = {.buffer = tmp_buffer.buffer,
                            .size = opcodes_raw_size};
@@ -41,7 +41,7 @@ opcode_str_buffer asm_opcodes_to_string(uc_buffer opcodes_raw,
       (opcodes_raw.size * 6) + 1;  // +1 for the null-terminator
 
   generic_buffer tmp_buffer =
-      generete_dynamic_array(opcodes_str_size, sizeof(char));
+      generate_dynamic_array(opcodes_str_size, sizeof(char));
 
   opcode_str_buffer opcodes_str = {.buffer = tmp_buffer.buffer,
                                    .size = opcodes_str_size};
